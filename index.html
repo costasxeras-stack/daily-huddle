@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily Huddle</title>
+<meta name="description" content="Run a short daily standup: a fair speaking order, a timer per person, blockers and side topics captured, and a history of how your meetings run.">
+<meta name="theme-color" content="#3b4aa8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233b4aa8'/%3E%3Ccircle cx='11' cy='13' r='3' fill='white'/%3E%3Ccircle cx='21' cy='13' r='3' fill='white'/%3E%3Cpath d='M6 24c1-4 9-4 10 0M16 24c1-4 9-4 10 0' stroke='white' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600;7..72,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css?v=1">
+<style>
+:root{--accent:#3b4aa8;--soft:#e9ebf8}
+.now{text-align:center;padding:4px 0}
+.now .who{font:700 clamp(32px,7vw,50px)/1.1 var(--display)}
+.now .clock{font:600 clamp(48px,13vw,80px)/1 var(--body);font-variant-numeric:tabular-nums;margin-top:8px}
+.now .clock.over{color:var(--warn)}
+.prog{height:8px;border-radius:4px;background:#eceae5;margin:12px auto 0;max-width:460px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--accent);width:0;transition:width .25s linear}
+.prog.over i{background:var(--warn)}
+.prog.total{height:5px;margin-top:8px}
+.prog.total i{background:#8c877e}
+.now .meta{color:var(--muted);font-size:14px;margin-top:8px}
+.prompts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.prompts span{font-size:13.5px;color:var(--muted);background:#f3f1ed;border-radius:999px;padding:4px 10px}
+.ctl{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+ol.order{margin:16px 0 0;padding:0;list-style:none;display:grid;gap:6px;counter-reset:n}
+ol.order li{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font-size:15px;counter-increment:n}
+ol.order li::before{content:counter(n);font:600 13px var(--body);color:var(--faint);width:18px}
+ol.order li.cur{border-color:var(--accent);background:var(--soft);font-weight:600}
+ol.order li.done,ol.order li.away{color:var(--faint)}
+ol.order li.away span.nm{text-decoration:line-through}
+ol.order li .t{margin-left:auto;font-variant-numeric:tabular-nums;font-size:14px}
+ol.order li.overrun .t{color:var(--warn);font-weight:600}
+.members{display:grid;gap:6px;margin-top:10px}
+.members label{display:flex;align-items:center;gap:10px;margin:0;font-weight:500;padding:8px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer}
+.members label input{width:18px;height:18px;accent-color:var(--accent)}
+.members label small{margin-left:auto;color:var(--faint);font-weight:400}
+.capt{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px}
+.items{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:6px}
+.items li{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:14.5px}
+.items li .who{font-weight:600}
+.items li button{margin-left:auto}
+.hist{display:grid;grid-template-columns:repeat(14,1fr);gap:5px;align-items:end;height:140px;margin-top:14px}
+.hist .b{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:11px;color:var(--faint);gap:3px}
+.hist .b i{display:block;width:100%;max-width:26px;border-radius:4px 4px 0 0;background:var(--accent);min-height:2px}
+.hist .b i.over{background:var(--warn)}
+.teamrow{display:flex;gap:10px;align-items:center;border-top:1px solid var(--line);padding:12px 0}
+.teamrow:first-child{border-top:0}
+.teamrow b{font-size:16px}
+.teamrow span{color:var(--faint);font-size:13.5px}
+.teamrow .acts{margin-left:auto;display:flex;gap:6px}
+.switch{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);margin:10px 0 0;font-weight:500}
+.switch input{width:18px;height:18px;accent-color:var(--accent)}
+@media (max-width:600px){.hide-sm-col{display:none}th,td{font-size:13.5px;padding:8px 4px}.hist{grid-template-columns:repeat(10,1fr)}.hist .b:nth-child(-n+4){display:none}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="./"><i><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="5" cy="6" r="2" fill="white"/><circle cx="11" cy="6" r="2" fill="white"/><path d="M2 13c.5-2.5 5.5-2.5 6 0M8 13c.5-2.5 5.5-2.5 6 0" stroke="white" stroke-width="1.6" fill="none"/></svg></i>Daily Huddle</a>
+  <nav><a class="hide-sm" href="https://github.com/costasxeras-stack/daily-huddle">GitHub</a><a href="https://kostasxeras.com/">Portfolio</a></nav>
+</div></header>
+<div class="tabs" role="tablist" aria-label="Sections"><div class="wrap">
+  <button role="tab" data-view="run" aria-selected="true">Huddle</button>
+  <button role="tab" data-view="teams" aria-selected="false">Teams</button>
+  <button role="tab" data-view="history" aria-selected="false">History</button>
+</div></div>
+
+<main class="wrap">
+  <!-- HUDDLE -->
+  <section data-panel="run">
+    <div id="setup">
+      <div class="intro"><h1>A short standup, every day.</h1><p>Pick the team, tick who is here, and start. The order is fair over time, each person gets a visible timer, and side topics go to the parking lot.</p></div>
+      <section class="card">
+        <div class="grid2">
+          <div><label for="team">Team</label><select id="team"></select></div>
+          <div><label for="mode">Speaking order</label><select id="mode">
+            <option value="fair">Fair rotation (who went first least)</option><option value="shuffle">Random shuffle</option><option value="alpha">Alphabetical</option><option value="fixed">Team order</option>
+          </select></div>
+        </div>
+        <label>Who is here</label>
+        <div class="members" id="here"></div>
+        <div class="row"><button class="btn primary" id="go" type="button">Start the huddle</button><span class="note" id="plan" style="margin:0"></span></div>
+        <p class="note" id="noteam" hidden>No team yet. Create one on the Teams tab, or <button class="btn small" id="sampleteam" type="button">add an example team</button></p>
+      </section>
+    </div>
+
+    <div id="live" hidden>
+      <section class="card" aria-live="polite">
+        <div class="now">
+          <div class="who" id="who"></div>
+          <div class="clock" id="clock">0:00</div>
+          <div class="prog" id="prog"><i></i></div>
+          <div class="prog total" id="tprog" title="Whole meeting"><i></i></div>
+          <div class="meta" id="meta"></div>
+          <div class="prompts" id="prompts"></div>
+        </div>
+        <div class="ctl">
+          <button class="btn" id="pause" type="button">Pause</button>
+          <button class="btn" id="back" type="button">Back</button>
+          <button class="btn" id="away" type="button">Not here</button>
+          <button class="btn primary" id="next" type="button">Next person</button>
+        </div>
+        <form class="capt" id="blockf" autocomplete="off"><input type="text" id="blocker" maxlength="160" placeholder="Blocker for the current speaker" aria-label="Blocker"><button class="btn" type="submit">Add blocker</button></form>
+        <ol class="order" id="order"></ol>
+        <div class="row"><button class="btn small danger" id="end" type="button">End now</button></div>
+      </section>
+    </div>
+
+    <section class="card" aria-labelledby="park-h">
+      <h2 id="park-h">Parking lot</h2>
+      <p class="sub">Topics for after the huddle, with only the people who need them.</p>
+      <form class="capt" id="parkf" autocomplete="off" style="grid-template-columns:1fr 150px auto">
+        <input type="text" id="topic" maxlength="140" placeholder="Topic" aria-label="Parking lot topic">
+        <select id="owner" aria-label="Owner"></select>
+        <button class="btn" type="submit">Add</button>
+      </form>
+      <ul class="items" id="parked"></ul>
+    </section>
+
+    <section class="card" id="sumc" hidden>
+      <h2>Huddle summary</h2>
+      <pre class="out" id="sum"></pre>
+      <div class="row"><button class="btn primary" id="copy" type="button">Copy summary</button><button class="btn" id="newh" type="button">New huddle</button></div>
+    </section>
+  </section>
+
+  <!-- TEAMS -->
+  <section data-panel="teams" hidden>
+    <div class="intro"><h1>Teams.</h1><p>Save each team once. Settings are kept per team.</p></div>
+    <section class="card"><h2>Your teams</h2><div id="teamlist"></div><div class="row"><button class="btn primary" id="newteam" type="button">New team</button></div></section>
+    <section class="card" id="teamedit" hidden>
+      <h2 id="te-h">Edit team</h2>
+      <label for="te-name">Team name</label><input type="text" id="te-name" maxlength="40">
+      <label for="te-members">Members, one per line, in team order</label><textarea id="te-members" style="min-height:160px"></textarea>
+      <div class="grid2">
+        <div><label for="te-mins">Minutes per person</label><input type="number" id="te-mins" min="0.5" max="10" step="0.5"></div>
+        <div><label for="te-total">Meeting timebox in minutes</label><input type="number" id="te-total" min="2" max="60" step="1"></div>
+      </div>
+      <label for="te-prompts">Prompts shown to each speaker, one per line</label><textarea id="te-prompts"></textarea>
+      <label class="switch"><input type="checkbox" id="te-sound"> Play a short sound when a speaker's time is up</label>
+      <div class="row"><button class="btn primary" id="te-save" type="button">Save team</button><button class="btn" id="te-cancel" type="button">Cancel</button><button class="btn danger" id="te-del" type="button">Delete team</button></div>
+    </section>
+  </section>
+
+  <!-- HISTORY -->
+  <section data-panel="history" hidden>
+    <div class="intro"><h1>How your huddles run.</h1><p>Every finished huddle is saved here, in this browser.</p></div>
+    <div class="row" style="margin-top:6px"><label for="hteam" style="margin:0">Team</label><select id="hteam" style="max-width:240px"></select></div>
+    <div class="stats" id="hstats"></div>
+    <section class="card"><h2>Length of the last huddles</h2><p class="sub">Red: over the timebox.</p><div class="hist" id="hbars"></div></section>
+    <section class="card"><h2>Who went first</h2><p class="sub">Fair rotation keeps this even.</p><div id="firsts"></div></section>
+    <section class="card"><h2>Past huddles</h2><div id="hlist"></div><div class="row"><button class="btn small" id="hcsv" type="button">Download history (CSV)</button><button class="btn small danger" id="hclear" type="button">Delete history</button></div></section>
+  </section>
+</main>
+<footer><div class="wrap"><span>Daily Huddle v0.1.0 by <a href="https://kostasxeras.com/">Konstantinos Xeras</a>, built with Claude (Anthropic). Everything stays in this browser. <a href="https://github.com/costasxeras-stack/daily-huddle">Code and decisions on GitHub</a>.</span></div></footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+  var KEY = 'daily-huddle-v1', $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var DEF_PROMPTS = ['What I finished', 'What I am doing today', 'Anything blocking me'];
+  var S = load(), R = null, tick = null, wake = null, editingTeam = null;
+
+  function load() {
+    try { var v = JSON.parse(localStorage.getItem(KEY) || 'null'); if (v && Array.isArray(v.teams)) { v.history = v.history || []; return v; } } catch (e) {}
+    var s = { teams: [], history: [], current: null };
+    try { var old = JSON.parse(localStorage.getItem('kx-standup-v1') || 'null'); if (old && old.names) { var t = newTeam('My team', old.names.split('\n').map(function (x) { return x.trim(); }).filter(Boolean)); t.mins = +old.mins || 2; s.teams.push(t); s.current = t.id; } } catch (e) {}
+    return s;
+  }
+  function store() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Could not save in this browser'); } }
+  function toast(t) { var el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(function () { el.classList.remove('on'); }, 2000); }
+  function newTeam(name, members) { return { id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: name, members: dedupe(members), mins: 2, total: 15, prompts: DEF_PROMPTS.slice(), sound: false, mode: 'fair' }; }
+  function dedupe(a) { var seen = {}; return a.map(function (x) { return String(x).trim().slice(0, 40); }).filter(function (x) { if (!x || seen[x.toLowerCase()]) return false; seen[x.toLowerCase()] = 1; return true; }).slice(0, 30); }
+  function team() { return S.teams.filter(function (t) { return t.id === S.current; })[0] || S.teams[0] || null; }
+  function fmt(s) { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2); }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+  // Tabs
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('[role=tab]'));
+  function show(v) {
+    tabs.forEach(function (b) { b.setAttribute('aria-selected', b.getAttribute('data-view') === v ? 'true' : 'false'); });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-panel]'), function (p) { p.hidden = p.getAttribute('data-panel') !== v; });
+    if (v === 'teams') teamsView(); if (v === 'history') historyView(); if (v === 'run') setupView();
+    window.scrollTo(0, 0);
+  }
+  tabs.forEach(function (b) { b.addEventListener('click', function () { show(b.getAttribute('data-view')); }); });
+
+  // Setup
+  var present = {};
+  function setupView() {
+    var t = team(); $('noteam').hidden = !!t; $('go').disabled = !t;
+    $('team').innerHTML = S.teams.map(function (x) { return '<option value="' + x.id + '"' + (t && x.id === t.id ? ' selected' : '') + '>' + esc(x.name) + '</option>'; }).join('') || '<option>No team yet</option>';
+    if (!t) { $('here').innerHTML = ''; $('plan').textContent = ''; owners([]); return; }
+    $('mode').value = t.mode || 'fair';
+    var firsts = firstCounts(t.id);
+    $('here').innerHTML = t.members.map(function (m) { if (present[m] == null) present[m] = true; return '<label><input type="checkbox" data-m="' + esc(m) + '"' + (present[m] ? ' checked' : '') + '> ' + esc(m) + '<small>' + (firsts[m] || 0) + '× first</small></label>'; }).join('');
+    planNote(); owners(t.members);
+  }
+  function planNote() { var t = team(); if (!t) return; var n = here().length; $('plan').textContent = n + ' here · ' + t.mins + ' min each · timebox ' + t.total + ' min'; }
+  function here() { var t = team(); return t ? t.members.filter(function (m) { return present[m] !== false; }) : []; }
+  $('here').addEventListener('change', function (e) { var c = e.target; if (c.getAttribute('data-m')) { present[c.getAttribute('data-m')] = c.checked; planNote(); } });
+  $('team').addEventListener('change', function () { S.current = this.value; present = {}; store(); setupView(); });
+  $('mode').addEventListener('change', function () { var t = team(); if (t) { t.mode = this.value; store(); } });
+  $('sampleteam').addEventListener('click', function () { var t = newTeam('Example team', ['Ana', 'Ben', 'Chris', 'Dana', 'Eli']); t.example = true; S.teams.push(t); S.current = t.id; store(); setupView(); toast('Example team added'); });
+  function firstCounts(id) { var c = {}; S.history.forEach(function (h) { if (h.team === id && h.order[0]) c[h.order[0].name] = (c[h.order[0].name] || 0) + 1; }); return c; }
+  function lastFirst(id) { var c = {}; S.history.forEach(function (h) { if (h.team === id && h.order[0]) c[h.order[0].name] = Math.max(c[h.order[0].name] || 0, h.start); }); return c; }
+  function order(t, people) {
+    var m = t.mode || 'fair';
+    if (m === 'alpha') return people.slice().sort(function (a, b) { return a.localeCompare(b); });
+    if (m === 'fixed') return people.slice();
+    if (m === 'shuffle') return shuffle(people.slice());
+    var c = firstCounts(t.id), l = lastFirst(t.id), sh = shuffle(people.slice());
+    var first = sh.slice().sort(function (a, b) { return (c[a] || 0) - (c[b] || 0) || (l[a] || 0) - (l[b] || 0); })[0];
+    return [first].concat(sh.filter(function (x) { return x !== first; }));
+  }
+
+  // Live
+  function now() { return Date.now(); }
+  function elapsed() { return R.startedAt ? ((R.paused ? R.pausedAt : now()) - R.startedAt) / 1000 : 0; }
+  $('go').addEventListener('click', function () {
+    var t = team(), people = here(); if (!t || !people.length) { toast('Tick at least one person'); return; }
+    R = { team: t.id, teamName: t.name, limit: Math.max(30, Math.round(t.mins * 60)), total: t.total * 60, prompts: t.prompts || [], sound: !!t.sound,
+      people: order(t, people).map(function (n) { return { name: n, secs: 0, away: false }; }), i: 0, start: now(), startedAt: now(), paused: false, blockers: [], beeped: false };
+    t.members.forEach(function (m) { if (present[m] === false) R.people.push({ name: m, secs: 0, away: true, absent: true }); });
+    $('setup').hidden = true; $('live').hidden = false; $('sumc').hidden = true;
+    clearInterval(tick); tick = setInterval(draw, 250); draw(); lock(true); owners(t.members);
+  });
+  function close(markAway) {
+    var p = R.people[R.i]; if (!p) return;
+    if (markAway) { p.away = true; p.secs = 0; } else p.secs += elapsed();
+    R.i++; while (R.people[R.i] && R.people[R.i].absent) R.i++;
+    R.paused = false; R.startedAt = now(); R.beeped = false; $('pause').textContent = 'Pause';
+    if (R.i >= R.people.length) finish(); else draw();
+  }
+  $('next').addEventListener('click', function () { close(false); });
+  $('away').addEventListener('click', function () { close(true); });
+  $('back').addEventListener('click', function () {
+    if (!R || R.i === 0) return; var p = R.people[R.i]; if (p) p.secs += elapsed();
+    R.i--; while (R.i > 0 && R.people[R.i].absent) R.i--; R.people[R.i].away = false; R.startedAt = now() - R.people[R.i].secs * 1000; R.people[R.i].secs = 0; R.paused = false; draw();
+  });
+  $('pause').addEventListener('click', function () { if (!R || !R.startedAt) return; if (R.paused) { R.startedAt += now() - R.pausedAt; R.paused = false; this.textContent = 'Pause'; } else { R.pausedAt = now(); R.paused = true; this.textContent = 'Resume'; } draw(); });
+  $('end').addEventListener('click', function () { if (!R) return; var p = R.people[R.i]; if (p) p.secs += elapsed(); for (var k = R.i + 1; k < R.people.length; k++) if (!R.people[k].absent) R.people[k].skipped = true; R.i = R.people.length; finish(); });
+  $('blockf').addEventListener('submit', function (e) { e.preventDefault(); var t = $('blocker').value.trim(); if (!t || !R || !R.people[R.i]) return; R.blockers.push({ who: R.people[R.i].name, text: t.slice(0, 160) }); $('blocker').value = ''; toast('Blocker noted for ' + R.people[R.i].name); });
+  function talked() { return R.people.reduce(function (s, x) { return s + (x.away ? 0 : x.secs); }, 0); }
+  function draw() {
+    var done = R.i >= R.people.length, p = R.people[R.i], e = done ? 0 : elapsed(), over = e > R.limit, total = talked() + e;
+    if (over && !R.beeped && !R.paused) { R.beeped = true; if (R.sound) beep(); if (navigator.vibrate) try { navigator.vibrate(200); } catch (x) {} }
+    $('who').textContent = done ? 'Done' : p.name;
+    $('clock').textContent = done ? fmt(total) : fmt(e); $('clock').classList.toggle('over', over);
+    $('prog').classList.toggle('over', over); $('prog').firstChild.style.width = (done ? 100 : Math.min(100, e / R.limit * 100)) + '%';
+    $('tprog').firstChild.style.width = Math.min(100, total / R.total * 100) + '%';
+    var speakers = R.people.filter(function (x) { return !x.absent; }), pos = speakers.indexOf(p) + 1;
+    $('meta').textContent = done ? 'Total speaking time' : (over ? fmt(e - R.limit) + ' over. Park it?' : fmt(R.limit - e) + ' left') + (R.paused ? ' · paused' : '') + ' · ' + pos + ' of ' + speakers.length + ' · meeting ' + fmt(total) + ' of ' + fmt(R.total);
+    $('prompts').innerHTML = done ? '' : R.prompts.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('');
+    ['pause', 'away', 'next', 'end'].forEach(function (id) { $(id).disabled = done; }); $('back').disabled = done || R.i === 0; $('blockf').hidden = done;
+    $('order').innerHTML = R.people.map(function (x, k) {
+      var cls = k === R.i && !done ? 'cur' : (x.away ? 'away' : (k < R.i ? 'done' : '')); if (k < R.i && !x.away && x.secs > R.limit) cls += ' overrun';
+      return '<li class="' + cls + '"><span class="nm">' + esc(x.name) + '</span><span class="t">' + (x.absent ? 'not here' : x.away ? 'skipped' : x.skipped ? 'not reached' : (k < R.i ? fmt(x.secs) : '')) + '</span></li>';
+    }).join('');
+  }
+  function finish() {
+    clearInterval(tick); lock(false); R.end = now(); R.startedAt = 0; draw();
+    var h = { id: 'h' + R.start, team: R.team, teamName: R.teamName, start: R.start, end: R.end, limit: R.limit, total: R.total,
+      order: R.people.filter(function (x) { return !x.absent; }).map(function (x) { return { name: x.name, secs: Math.round(x.secs), away: !!x.away || !!x.skipped }; }),
+      absent: R.people.filter(function (x) { return x.absent; }).map(function (x) { return x.name; }), blockers: R.blockers, parked: S.parked ? S.parked.slice() : [] };
+    S.history.push(h); if (S.history.length > 400) S.history = S.history.slice(-400); store(); summary(h);
+  }
+  function summary(h) {
+    var lines = [h.teamName + ' huddle, ' + new Date(h.start).toLocaleDateString('en-GB') + ', ' + fmt((h.end - h.start) / 1000) + (h.end - h.start > h.total * 1000 ? ' (over the ' + fmt(h.total) + ' timebox)' : ''), ''];
+    h.order.forEach(function (x, k) { lines.push((k + 1) + '. ' + x.name + (x.away ? ' (skipped)' : ' ' + fmt(x.secs) + (x.secs > h.limit ? ' (over)' : ''))); });
+    if (h.absent.length) lines.push('Not here: ' + h.absent.join(', '));
+    if (h.blockers.length) { lines.push('', 'Blockers:'); h.blockers.forEach(function (b) { lines.push('- ' + b.who + ': ' + b.text); }); }
+    var pk = S.parked || []; if (pk.length) { lines.push('', 'Parked:'); pk.forEach(function (p) { lines.push('- ' + p.text + (p.owner ? ' (' + p.owner + ')' : '')); }); }
+    $('sum').textContent = lines.join('\n'); $('sumc').hidden = false;
+  }
+  $('copy').addEventListener('click', function () { (navigator.clipboard ? navigator.clipboard.writeText($('sum').textContent) : Promise.reject()).then(function () { toast('Copied'); }, function () { toast('Select the text and copy it'); }); });
+  $('newh').addEventListener('click', function () { R = null; S.parked = []; store(); drawPark(); $('live').hidden = true; $('setup').hidden = false; $('sumc').hidden = true; present = {}; setupView(); window.scrollTo(0, 0); });
+  function beep() { try { var C = window.AudioContext || window.webkitAudioContext; var c = new C(), o = c.createOscillator(), g = c.createGain(); o.frequency.value = 880; g.gain.value = 0.08; o.connect(g); g.connect(c.destination); o.start(); setTimeout(function () { o.stop(); c.close(); }, 220); } catch (e) {} }
+  function lock(on) { try { if (on && navigator.wakeLock) navigator.wakeLock.request('screen').then(function (w) { wake = w; }).catch(function () {}); else if (!on && wake) { wake.release(); wake = null; } } catch (e) {} }
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && R && !R.end) lock(true); });
+  document.addEventListener('keydown', function (e) { if (!R || R.end || e.target.matches('input,textarea,select')) return; if (e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); close(false); } if (e.key === 'ArrowLeft') $('back').click(); if (e.key === 'p') $('pause').click(); });
+
+  // Parking lot
+  function owners(list) { $('owner').innerHTML = '<option value="">Owner</option>' + list.map(function (m) { return '<option>' + esc(m) + '</option>'; }).join(''); }
+  $('parkf').addEventListener('submit', function (e) { e.preventDefault(); var t = $('topic').value.trim(); if (!t) return; S.parked = S.parked || []; S.parked.push({ text: t.slice(0, 140), owner: $('owner').value }); $('topic').value = ''; store(); drawPark(); if (R && R.end) summary(S.history[S.history.length - 1]); });
+  $('parked').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; S.parked.splice(+b.getAttribute('data-i'), 1); store(); drawPark(); });
+  function drawPark() { var pk = S.parked || []; $('parked').innerHTML = pk.length ? pk.map(function (p, i) { return '<li><span>' + esc(p.text) + '</span>' + (p.owner ? '<span class="pill">' + esc(p.owner) + '</span>' : '') + '<button class="btn small" data-i="' + i + '">Done</button></li>'; }).join('') : '<li class="empty" style="border:0;padding:4px 0">Nothing parked.</li>'; }
+
+  // Teams
+  function teamsView() {
+    $('teamlist').innerHTML = S.teams.length ? S.teams.map(function (t) { return '<div class="teamrow"><div><b>' + esc(t.name) + '</b><br><span>' + t.members.length + ' people · ' + t.mins + ' min each · ' + t.total + ' min timebox</span></div><div class="acts"><button class="btn small" data-e="' + t.id + '">Edit</button></div></div>'; }).join('') : '<p class="empty">No teams yet.</p>';
+    $('teamedit').hidden = true;
+  }
+  function openEdit(t) {
+    editingTeam = t ? t.id : null; $('teamedit').hidden = false; $('te-h').textContent = t ? 'Edit ' + t.name : 'New team';
+    $('te-name').value = t ? t.name : ''; $('te-members').value = t ? t.members.join('\n') : ''; $('te-mins').value = t ? t.mins : 2; $('te-total').value = t ? t.total : 15;
+    $('te-prompts').value = (t ? t.prompts : DEF_PROMPTS).join('\n'); $('te-sound').checked = t ? !!t.sound : false; $('te-del').hidden = !t; $('te-name').focus();
+  }
+  $('teamlist').addEventListener('click', function (e) { var b = e.target.closest('[data-e]'); if (b) openEdit(S.teams.filter(function (t) { return t.id === b.getAttribute('data-e'); })[0]); });
+  $('newteam').addEventListener('click', function () { openEdit(null); });
+  $('te-cancel').addEventListener('click', function () { $('teamedit').hidden = true; });
+  $('te-save').addEventListener('click', function () {
+    var name = $('te-name').value.trim().slice(0, 40), members = dedupe($('te-members').value.split('\n'));
+    if (!name) { toast('Give the team a name'); return; } if (!members.length) { toast('Add at least one member'); return; }
+    var t = editingTeam ? S.teams.filter(function (x) { return x.id === editingTeam; })[0] : newTeam(name, members);
+    t.name = name; t.members = members; t.mins = Math.min(10, Math.max(0.5, +$('te-mins').value || 2)); t.total = Math.min(60, Math.max(2, Math.round(+$('te-total').value || 15)));
+    t.prompts = $('te-prompts').value.split('\n').map(function (x) { return x.trim().slice(0, 40); }).filter(Boolean).slice(0, 4); t.sound = $('te-sound').checked;
+    if (!editingTeam) S.teams.push(t); S.current = t.id; store(); teamsView(); toast('Team saved'); present = {};
+  });
+  $('te-del').addEventListener('click', function () {
+    if (this.getAttribute('data-sure') !== '1') { this.setAttribute('data-sure', '1'); this.textContent = 'Tap again to delete'; return; }
+    S.teams = S.teams.filter(function (t) { return t.id !== editingTeam; }); if (S.current === editingTeam) S.current = S.teams[0] ? S.teams[0].id : null;
+    this.removeAttribute('data-sure'); this.textContent = 'Delete team'; store(); teamsView(); toast('Team deleted. Its history is kept.');
+  });
+
+  // History
+  function historyView() {
+    var ids = {}; S.history.forEach(function (h) { ids[h.team] = h.teamName; });
+    var cur = $('hteam').value || (team() ? team().id : '');
+    $('hteam').innerHTML = '<option value="">All teams</option>' + Object.keys(ids).map(function (k) { return '<option value="' + k + '"' + (k === cur ? ' selected' : '') + '>' + esc(ids[k]) + '</option>'; }).join('');
+    var H = S.history.filter(function (h) { return !$('hteam').value || h.team === $('hteam').value; });
+    if (!H.length) { $('hstats').innerHTML = ''; $('hbars').innerHTML = '<p class="empty">No finished huddles yet.</p>'; $('firsts').innerHTML = ''; $('hlist').innerHTML = ''; return; }
+    var lens = H.map(function (h) { return (h.end - h.start) / 1000; }), avg = lens.reduce(function (a, b) { return a + b; }, 0) / lens.length;
+    var onTime = H.filter(function (h) { return h.end - h.start <= h.total * 1000; }).length;
+    var turns = 0, overT = 0; H.forEach(function (h) { h.order.forEach(function (x) { if (!x.away) { turns++; if (x.secs > h.limit) overT++; } }); });
+    $('hstats').innerHTML = [[H.length, 'huddles'], [fmt(avg), 'average length'], [Math.round(onTime / H.length * 100) + '%', 'within the timebox'], [turns ? Math.round(overT / turns * 100) + '%' : '–', 'of turns ran over']].map(function (s) { return '<div class="stat"><b>' + s[0] + '</b><span>' + s[1] + '</span></div>'; }).join('');
+    var last = H.slice(-14), mx = Math.max.apply(null, last.map(function (h) { return Math.max(h.end - h.start, h.total * 1000); }));
+    $('hbars').innerHTML = last.map(function (h) { var l = h.end - h.start; return '<div class="b"><i class="' + (l > h.total * 1000 ? 'over' : '') + '" style="height:' + (l / mx * 110) + 'px" title="' + fmt(l / 1000) + '"></i><span>' + new Date(h.start).toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric' }) + '</span></div>'; }).join('');
+    var c = {}; H.forEach(function (h) { if (h.order[0]) c[h.order[0].name] = (c[h.order[0].name] || 0) + 1; });
+    var mxc = Math.max.apply(null, Object.keys(c).map(function (k) { return c[k]; }));
+    $('firsts').innerHTML = Object.keys(c).sort(function (a, b) { return c[b] - c[a]; }).map(function (k) { return '<div style="display:grid;grid-template-columns:110px 1fr 30px;gap:10px;align-items:center;margin-top:8px;font-size:14px"><span>' + esc(k) + '</span><span style="height:12px;border-radius:6px;background:#eeebe5;overflow:hidden"><i style="display:block;height:100%;width:' + (c[k] / mxc * 100) + '%;background:var(--accent)"></i></span><b style="text-align:right">' + c[k] + '</b></div>'; }).join('');
+    $('hlist').innerHTML = '<table><thead><tr><th>Date</th><th class="hide-sm-col">Team</th><th class="n">Length</th><th class="n">People</th><th class="n">Blockers</th></tr></thead><tbody>' + H.slice().reverse().slice(0, 30).map(function (h) { var l = (h.end - h.start) / 1000; return '<tr><td>' + new Date(h.start).toLocaleDateString('en-GB') + '</td><td class="hide-sm-col">' + esc(h.teamName) + '</td><td class="n"' + (l > h.total ? ' style="color:var(--warn)"' : '') + '>' + fmt(l) + '</td><td class="n">' + h.order.filter(function (x) { return !x.away; }).length + '</td><td class="n">' + h.blockers.length + '</td></tr>'; }).join('') + '</tbody></table>';
+  }
+  $('hteam').addEventListener('change', historyView);
+  $('hcsv').addEventListener('click', function () {
+    var rows = [['date', 'team', 'minutes', 'timebox_minutes', 'speakers', 'turns_over', 'first', 'blockers']].concat(S.history.map(function (h) { return [new Date(h.start).toISOString(), h.teamName, ((h.end - h.start) / 60000).toFixed(1), h.total / 60, h.order.filter(function (x) { return !x.away; }).length, h.order.filter(function (x) { return !x.away && x.secs > h.limit; }).length, h.order[0] ? h.order[0].name : '', h.blockers.map(function (b) { return b.who + ': ' + b.text; }).join(' | ')]; }));
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([rows.map(function (r) { return r.map(function (c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(','); }).join('\n')], { type: 'text/csv' })); a.download = 'huddle-history.csv'; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  });
+  $('hclear').addEventListener('click', function () { if (this.getAttribute('data-sure') !== '1') { this.setAttribute('data-sure', '1'); this.textContent = 'Tap again to delete history'; return; } S.history = []; store(); this.removeAttribute('data-sure'); this.textContent = 'Delete history'; historyView(); });
+
+  drawPark(); setupView();
+})();
+</script>
+</body>
+</html>

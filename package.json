@@ -1,0 +1,10 @@
+{
+  "name": "daily-huddle",
+  "version": "0.1.0",
+  "description": "Run a short daily standup: a fair speaking order, a timer per person, blockers and side topics captured, and a history of how your meetings run.",
+  "private": true,
+  "scripts": {
+    "serve": "python3 -m http.server 8000"
+  },
+  "license": "MIT"
+}
