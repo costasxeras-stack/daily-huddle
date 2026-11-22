@@ -54,9 +54,9 @@ No usage data yet. These are the measures I would track, with targets to set aft
 2. A short daily summary posted to a chat channel, on request
 3. Blocker follow-up: carry open blockers into the next huddle
 
-## How it was built
+## My role
 
-I defined the problem, the users, the features and the decisions. Claude (Anthropic) was my engineering partner for the code. The idea started from a small example in Ziplines' list of vibe coding projects, which I turned into a full app with my own product choices.
+I defined the problem, the users, the features and the decisions. The idea started from a small example in Ziplines' list of project ideas, which I turned into a full app with my own product choices.
 
 ## Run it yourself
 
